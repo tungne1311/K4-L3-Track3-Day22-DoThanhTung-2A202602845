@@ -1,5 +1,11 @@
 # Ngày 22 — Lab căn chỉnh mô hình bằng DPO/ORPO (Track 3)
 
+**Bài nộp: Đỗ Thanh Tùng · A20-K4 · 2A202602845 · 09/10/2026.**
+
+Notebook đã chạy trên Colab T4: [`notebooks/Lab22_DPO_T4.ipynb`](notebooks/Lab22_DPO_T4.ipynb), giữ toàn bộ output và kết quả `Core checks passed` ở cell cuối. Bài phản tư: [`submission/REFLECTION.md`](submission/REFLECTION.md). Bốn ảnh nằm trong [`submission/screenshots/`](submission/screenshots/); số liệu chấm trong [`data/eval/judge_summary.json`](data/eval/judge_summary.json), metrics DPO trong [`adapters/dpo/dpo_metrics.json`](adapters/dpo/dpo_metrics.json).
+
+Đã hoàn thành NB0–NB4, không chạy bonus. Độ chính xác preference held-out đạt 68%; win rate SFT+DPO là 54% trên 50 prompt held-out (CI 95%: 47–61%, hòa tính nửa điểm). Khoảng tin cậy chứa 50%, nên chưa đủ bằng chứng DPO tốt hơn SFT. REFLECTION phân tích thêm việc lọc giám khảo và thẻ tool-call thừa trong đầu ra. Các notebook trong `colab/` là bản để bắt đầu một lần chạy mới; trọng số model không đưa lên Git.
+
 Lab cho học phần **AICB-P2T3 · Ngày 22 · DPO/ORPO Alignment — từ SFT đến học theo sở thích**.
 
 > Bản K4 cập nhật tháng 10/2026 (xem [`CHANGELOG.md`](CHANGELOG.md)). Mọi thời gian trong tài liệu này là

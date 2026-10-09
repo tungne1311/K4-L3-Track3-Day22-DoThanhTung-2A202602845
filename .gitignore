@@ -26,6 +26,7 @@ adapters/*/*
 !adapters/*/grpo_metrics.json
 data/pref/*
 !data/pref/*.parquet
+!data/pref/stats.json
 data/eval/*
 !data/eval/*.json
 !data/eval/*.jsonl

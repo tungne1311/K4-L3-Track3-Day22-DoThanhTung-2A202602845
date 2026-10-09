@@ -23,6 +23,7 @@
 
 # %%
 import sys
+import time
 from pathlib import Path
 
 ROOT = next(p for p in (Path.cwd(), *Path.cwd().parents) if (p / "lab22" / "config.py").exists())
@@ -76,7 +77,11 @@ trainer = DPOTrainer(
     eval_dataset=eval_ds,
     processing_class=tokenizer,
 )
+torch.cuda.reset_peak_memory_stats()
+started = time.perf_counter()
 result = trainer.train()
+train_seconds = time.perf_counter() - started
+peak_vram_gb = torch.cuda.max_memory_allocated() / 1e9
 final_eval = trainer.evaluate()
 print(f"train loss {result.training_loss:.4f} · held-out reward accuracy "
       f"{final_eval.get('eval_rewards/accuracies', float('nan')):.3f}")
@@ -127,6 +132,8 @@ metrics = {
     "lr": C.DPO_LR,
     "loss_type": C.DPO_LOSS,
     "epochs": C.DPO_EPOCHS,
+    "train_seconds": train_seconds,
+    "peak_vram_gb": peak_vram_gb,
     "final_train_loss": float(result.training_loss),
     "first_logged_loss": first_loss,
     "end_chosen_reward": last(train_hist, "rewards/chosen"),

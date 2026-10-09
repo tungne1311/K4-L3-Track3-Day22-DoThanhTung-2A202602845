@@ -53,14 +53,17 @@ print(f"sum log p = {total.item():.3f}   mean log p = {mean.item():.3f}")
 #
 # $$\mathcal{L} = -\log\sigma\Big(\beta\big[(\log\pi_\theta(y_w) - \log\pi_{ref}(y_w)) - (\log\pi_\theta(y_l) - \log\pi_{ref}(y_l))\big]\Big)$$
 #
-# Điền hàm dưới đây. Ô kiểm tra sẽ so với bản tham chiếu trong `lab22/dpo_math.py`.
+# Hàm dưới đây dùng công thức trên; ô kiểm tra so với bản tham chiếu trong `lab22/dpo_math.py`.
 
 
 # %%
 def my_dpo_loss(pc, pr, rc, rr, beta=0.1):
     """pc/pr: policy log-prob chosen/rejected; rc/rr: reference. Trả về loss trung bình."""
-    # TODO: viết bằng torch.nn.functional.logsigmoid
-    return None
+    chosen_ratio = pc - rc
+    rejected_ratio = pr - rr
+    margin = beta * (chosen_ratio - rejected_ratio)
+    # logsigmoid tránh tràn số khi margin rất lớn hoặc rất nhỏ.
+    return -torch.nn.functional.logsigmoid(margin).mean()
 
 
 # %%
@@ -68,11 +71,8 @@ pc, pr = torch.tensor([-12.0, -30.0]), torch.tensor([-15.0, -28.0])
 rc, rr = torch.tensor([-13.0, -29.0]), torch.tensor([-14.0, -29.0])
 ref_loss, _, _ = M.dpo_loss(pc, pr, rc, rr, beta=0.1)
 mine = my_dpo_loss(pc, pr, rc, rr, beta=0.1)
-if mine is None:
-    print(f"Chưa cài my_dpo_loss. Đáp số tham chiếu: {ref_loss.item():.4f}")
-else:
-    assert torch.allclose(torch.as_tensor(mine), ref_loss, atol=1e-6), (mine, ref_loss)
-    print(f"✓ Khớp tham chiếu: {ref_loss.item():.4f}")
+assert torch.allclose(mine, ref_loss, atol=1e-6), (mine, ref_loss)
+print(f"✓ Khớp tham chiếu: {ref_loss.item():.4f}")
 
 # %% [markdown]
 # ## 3. Bước 0: mô hình đang học (policy) = reference ⇒ loss = log 2
@@ -84,6 +84,7 @@ else:
 # %%
 same = torch.tensor([-20.0, -35.0])
 loss0, cr0, rr0 = M.dpo_loss(same, same - 3, same, same - 3)
+assert torch.allclose(my_dpo_loss(same, same - 3, same, same - 3), torch.tensor(math.log(2)), atol=1e-6)
 print(f"loss at init = {loss0.item():.4f}   log 2 = {math.log(2):.4f}   rewards = {cr0.tolist()}, {rr0.tolist()}")
 
 # %% [markdown]
@@ -115,6 +116,11 @@ for name, (pc_, pr_) in scenarios.items():
 
 # %% [markdown]
 # **RPO** thêm NLL của câu chosen vào loss: kịch bản B bị phạt vì chosen bị đẩy xuống.
+#
+# **Trả lời câu hỏi:** DPO tối ưu chênh lệch log-xác suất so với reference,
+# không bảo đảm xác suất tuyệt đối của chosen tăng. Ở kịch bản B, chosen giảm
+# 3 nat nhưng rejected giảm 5 nat, nên chênh lệch tăng 2 nat và loss vẫn giảm.
+# Vì vậy cần đọc riêng cả hai đường reward và kiểm tra chất lượng câu trả lời ở NB4.
 
 # %%
 for name, (pc_, pr_) in scenarios.items():
@@ -148,3 +154,9 @@ print(f"ORPO  {M.orpo_loss(avg_c, avg_r, -avg_c).item():.4f}")
 # **Câu hỏi cho REFLECTION §3:** tổng log-prob của câu dài luôn âm hơn câu ngắn.
 # Vì sao điều đó khiến DPO gốc dễ thiên vị độ dài, và SimPO/ORPO xử lý bằng cách nào?
 # Gợi ý: NB2 in ra tỉ lệ cặp có chosen dài hơn rejected trong dữ liệu tiếng Việt.
+#
+# **Giải thích:** tổng log-prob phụ thuộc số token; nhãn preference cũng có thể
+# ưu tiên câu dài. DPO dùng log-ratio với reference nên không thể kết luận chỉ
+# từ tổng log-prob rằng nó luôn thích câu dài. SimPO và ORPO dùng log-prob trung
+# bình theo token để giảm ảnh hưởng trực tiếp của độ dài, nhưng vẫn cần đo thiên
+# vị nhãn ở NB2 và thiên vị giám khảo ở NB4.
